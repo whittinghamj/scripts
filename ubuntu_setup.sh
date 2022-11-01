@@ -22,7 +22,6 @@ echo "============================================================"
 echo "= title :    System Prep Script                            ="
 echo "= author:    jamie whittingham                             ="
 echo "= created:   02.11.2022                                    ="
-echo "=                                                          ="
 echo "============================================================"
 
 ## set system limits
