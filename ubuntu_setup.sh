@@ -43,28 +43,28 @@ sudo rmmod floppy >/dev/null 2>&1
 echo "blacklist floppy" | sudo tee /etc/modprobe.d/blacklist-floppy.conf >/dev/null 2>&1
 sudo dpkg-reconfigure initramfs-tools >/dev/null 2>&1
 
-## update apt-get repos
+## update apt repos
 echo "Updating repos"
-apt-get update >/dev/null 2>&1
+apt update >/dev/null 2>&1
 
 ## upgrade all packages
 echo "Upgrading OS"
-apt-get -qq -y upgrade >/dev/null 2>&1
+apt upgrade -qq -y >/dev/null 2>&1
 
 ## disable apparmor
 service apparmor stop >/dev/null 2>&1
 update-rc.d -f apparmor remove >/dev/null 2>&1
-apt-get remove -qq -y apparmor apparmor-utils >/dev/null 2>&1
+apt remove -qq -y apparmor apparmor-utils >/dev/null 2>&1
 
 ## sync system clock
-apt-get -qq -y install ntp >/dev/null 2>&1
+apt -qq -y install ntp >/dev/null 2>&1
 
 ## remove sendmail
 service sendmail stop; update-rc.d -f sendmail remove >/dev/null 2>&1
 
 ## install dependencies
 echo "Installing core packages"
-apt-get install -qq -y net-tools mariadb-client openssl rkhunter binutils python bc nfs-common htop nload nmap sudo gcc make git autoconf autogen automake pkg-config locate curl dnsutils sshpass fping jq zip iftop  >/dev/null 2>&1
+apt install -qq -y dialog net-tools mariadb-client openssl rkhunter binutils python bc nfs-common htop nload nmap sudo gcc make git autoconf autogen automake pkg-config locate curl dnsutils sshpass fping jq zip iftop  >/dev/null 2>&1
 updatedb >/dev/null 2>&1
 
 ## download custom scripts
@@ -77,25 +77,31 @@ cp /root/.bashrc /etc/skel >/dev/null 2>&1
 chmod 777 /etc/skel/.bashrc >/dev/null 2>&1
 
 ## setup whittinghamj account
-useradd -m -s /bin/bash whittinghamj >/dev/null 2>&1
-usermod -aG sudo whittinghamj >/dev/null 2>&1
-mkdir -p /home/whittinghamj/.ssh >/dev/null 2>&1
-wget -q -O /home/whittinghamj/.ssh/authorized_keys http://pidoxa.io/ssh_keys/jamie_ssh_key >/dev/null 2>&1
-echo "whittinghamj    ALL=(ALL:ALL) NOPASSWD:ALL" >> /etc/sudoers
+if [ -z "$(getent passwd whittinghamj)" ]; then
+	useradd -m -s /bin/bash whittinghamj >/dev/null 2>&1
+	usermod -aG sudo whittinghamj >/dev/null 2>&1
+	mkdir -p /home/whittinghamj/.ssh >/dev/null 2>&1
+	wget -q -O /home/whittinghamj/.ssh/authorized_keys https://raw.githubusercontent.com/whittinghamj/scripts/main/whittinghamj_ssh_key.txt >/dev/null 2>&1
+	echo "whittinghamj    ALL=(ALL:ALL) NOPASSWD:ALL" >> /etc/sudoers
+fi
 
 ## setup aegrant account
-useradd -m -s /bin/bash aegrant >/dev/null 2>&1
-usermod -aG sudo aegrant >/dev/null 2>&1
-mkdir /home/aegrant/.ssh >/dev/null 2>&1
-wget -q -O /home/aegrant/.ssh/authorized_keys http://pidoxa.io/ssh_keys/andy_ssh_key >/dev/null 2>&1
-echo "aegrant    ALL=(ALL:ALL) NOPASSWD:ALL" >> /etc/sudoers
+if [ -z "$(getent passwd aegrant)" ]; then
+	useradd -m -s /bin/bash aegrant >/dev/null 2>&1
+	usermod -aG sudo aegrant >/dev/null 2>&1
+	mkdir /home/aegrant/.ssh >/dev/null 2>&1
+	wget -q -O /home/aegrant/.ssh/authorized_keys https://raw.githubusercontent.com/whittinghamj/scripts/main/aegrant_ssh_key.txt >/dev/null 2>&1
+	echo "aegrant    ALL=(ALL:ALL) NOPASSWD:ALL" >> /etc/sudoers
+fi
 
 ## setup cwiegand account
-useradd -m -s /bin/bash cwiegand >/dev/null 2>&1
-usermod -aG sudo cwiegand >/dev/null 2>&1
-mkdir /home/cwiegand/.ssh >/dev/null 2>&1
-wget -q -O /home/cwiegand/.ssh/authorized_keys http://pidoxa.io/ssh_keys/cwiegand_ssh_key >/dev/null 2>&1
-echo "cwiegand    ALL=(ALL:ALL) NOPASSWD:ALL" >> /etc/sudoers
+if [ -z "$(getent passwd cwiegand)" ]; then
+	useradd -m -s /bin/bash cwiegand >/dev/null 2>&1
+	usermod -aG sudo cwiegand >/dev/null 2>&1
+	mkdir /home/cwiegand/.ssh >/dev/null 2>&1
+	wget -q -O /home/cwiegand/.ssh/authorized_keys https://raw.githubusercontent.com/whittinghamj/scripts/main/cwiegand_ssh_key.txt >/dev/null 2>&1
+	echo "cwiegand    ALL=(ALL:ALL) NOPASSWD:ALL" >> /etc/sudoers
+fi
 
 ## change SSH port to 33077 and only listen to IPv4
 echo "Updating SSHd details"
@@ -104,7 +110,32 @@ sed -i 's/22/33077/' /etc/ssh/sshd_config >/dev/null 2>&1
 sed -i 's/#AddressFamily any/AddressFamily inet/' /etc/ssh/sshd_config >/dev/null 2>&1
 /etc/init.d/ssh restart >/dev/null 2>&1
 
+# reboot options
+HEIGHT=15
+WIDTH=40
+CHOICE_HEIGHT=4
+BACKTITLE="System Installer"
+TITLE="Reboot Options"
+MENU="Do you want to reboot?"
 
-## wrap up
-reboot
+OPTIONS=(1 "Yes, reboot now."
+         2 "No, exit script.")
+
+CHOICE=$(dialog --clear \
+                --backtitle "$BACKTITLE" \
+                --title "$TITLE" \
+                --menu "$MENU" \
+                $HEIGHT $WIDTH $CHOICE_HEIGHT \
+                "${OPTIONS[@]}" \
+                2>&1 >/dev/tty)
+
+clear
+case $CHOICE in
+        1)
+            sudo reboot
+            ;;
+        2)
+            echo "Installation Complete"
+            ;;
+esac
 
